@@ -1,7 +1,8 @@
-import { ActionPanel, List, Action, useNavigation } from "@raycast/api";
+import { ActionPanel, List, Action } from "@raycast/api";
 import { useState } from "react";
 import { useExec } from "@raycast/utils";
 import { userInfo } from "os";
+import { exec } from "child_process";
 
 export interface passwords_path_structure {
   pass_file_path: string;
@@ -15,7 +16,21 @@ interface password_metadata {
 
 type password_meta = password_metadata[];
 
-function PassworMetadata(props: passwords_path_structure) {
+const path_var = "/opt/homebrew/bin:/usr/bin:/bin";
+let options: any = {
+  env: { PATH: path_var },
+  ...process.env,
+  ...userInfo(),
+};
+
+const CopyPassword = async (props: passwords_path_structure) => {
+  const cmd = exec(`pass -c '${props.pass_file_name}'`, options);
+  cmd.stdout.on("data", (data) => {
+    console.log(data);
+  });
+};
+
+function PasswordMetadata(props: passwords_path_structure) {
   const ParseMetadata = (raw_data: string) => {
     return raw_data.split("\n").map((val) => {
       const indx = val.indexOf(":");
@@ -27,13 +42,8 @@ function PassworMetadata(props: passwords_path_structure) {
 
   const loadPasswordDetails = () => {
     const [markdown, setMarkdown] = useState<password_meta>([]);
-
-    const path_var = "/opt/homebrew/bin:/usr/bin:/bin";
-
-    const options = {
-      env: { PATH: path_var },
-      ...process.env,
-      ...userInfo(),
+    options = {
+      ...options,
       onData: (data: string) => {
         setMarkdown(ParseMetadata(data));
       },
@@ -63,15 +73,12 @@ function PassworMetadata(props: passwords_path_structure) {
 }
 
 export default function GetPasswordDetails(props: passwords_path_structure) {
-  const { push } = useNavigation();
-
   return (
     <ActionPanel>
-      <Action
+      <Action title="Copy Password" onAction={() => CopyPassword(props)} />
+      <Action.Push
         title={"Browse metadata"}
-        onAction={() =>
-          push(<PassworMetadata pass_file_path={props.pass_file_path} pass_file_name={props.pass_file_name} />)
-        }
+        target={<PasswordMetadata pass_file_path={props.pass_file_path} pass_file_name={props.pass_file_name} />}
         shortcut={{ modifiers: ["cmd"], key: "enter" }}
       />
     </ActionPanel>

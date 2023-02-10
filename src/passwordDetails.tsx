@@ -1,8 +1,9 @@
-import { ActionPanel, List, Action, showToast, Toast, showHUD } from "@raycast/api";
+import { ActionPanel, List, Action, showToast, Toast, showHUD, getPreferenceValues } from "@raycast/api";
 import { useState } from "react";
 import { useExec } from "@raycast/utils";
 import { userInfo } from "os";
 import { exec } from "child_process";
+import { Preferences } from "./utils";
 
 export interface passwords_path_structure {
   pass_file_path: string;
@@ -16,9 +17,9 @@ interface password_metadata {
 
 type password_meta = password_metadata[];
 
-const path_var = "/opt/homebrew/bin:/usr/bin:/bin";
+const preferences = getPreferenceValues<Preferences>();
 let options: any = {
-  env: { PATH: path_var },
+  env: { PATH: preferences.path_var },
   ...process.env,
   ...userInfo(),
 };
@@ -30,7 +31,7 @@ const CopyPassword = async (props: passwords_path_structure) => {
     title: "Decrypting file",
   });
 
-  cmd.stdout.on("data", async(data) => {
+  cmd.stdout!.on("data", async(data) => {
     toast.style = Toast.Style.Success;
     toast.title = data;
     await showHUD(data)
@@ -98,3 +99,4 @@ export default function GetPasswordDetails(props: passwords_path_structure) {
     </ActionPanel>
   );
 }
+ 

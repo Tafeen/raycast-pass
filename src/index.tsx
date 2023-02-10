@@ -9,8 +9,7 @@ function ParsePassFileName(pass_file_path: string) {
   const password_store_name = "password-store/";
   const pass_id = pass_file_path.lastIndexOf("password-store/");
   let pass_path = pass_file_path.slice(pass_id);
-  pass_path = pass_path.slice(password_store_name.length);
-  pass_path = pass_path.slice(0, -4);
+  pass_path = pass_path.slice(password_store_name.length).slice(0, -4);
   return pass_path;
 }
 

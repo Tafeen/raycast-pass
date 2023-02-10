@@ -1,4 +1,4 @@
-import { ActionPanel, List, Action } from "@raycast/api";
+import { ActionPanel, List, Action, showToast, Toast, showHUD } from "@raycast/api";
 import { useState } from "react";
 import { useExec } from "@raycast/utils";
 import { userInfo } from "os";
@@ -25,8 +25,22 @@ let options: any = {
 
 const CopyPassword = async (props: passwords_path_structure) => {
   const cmd = exec(`pass -c '${props.pass_file_name}'`, options);
-  cmd.stdout.on("data", (data) => {
-    console.log(data);
+  const toast = await showToast({
+    style: Toast.Style.Animated,
+    title: "Decrypting file",
+  });
+
+  cmd.stdout.on("data", async(data) => {
+    toast.style = Toast.Style.Success;
+    toast.title = data;
+    await showHUD(data)
+  });
+  
+  cmd.on('close', (code) => {
+    if(code != 0){
+      toast.style = Toast.Style.Failure;
+      toast.title = "Failed to copy password";
+    }
   });
 };
 

@@ -76,6 +76,11 @@ function PasswordMetadata(props: passwords_path_structure) {
               actions={
                 <ActionPanel title={val.name}>
                   <Action.CopyToClipboard title={`Copy value of '${val.name}'`} content={val.value} />
+                  <Action
+                    title={"Copy Password"}
+                    onAction={() => CopyPassword(props)} 
+                    shortcut={{modifiers: ['ctrl'], key: "c"}}
+                  />
                 </ActionPanel>
               }
             />
@@ -90,13 +95,18 @@ function PasswordMetadata(props: passwords_path_structure) {
 export default function GetPasswordDetails(props: passwords_path_structure) {
   return (
     <ActionPanel>
-      <Action title="Copy Password" onAction={() => CopyPassword(props)} />
       <Action.Push
         title={"Browse metadata"}
         target={<PasswordMetadata pass_file_path={props.pass_file_path} pass_file_name={props.pass_file_name} />}
         shortcut={{ modifiers: ["cmd"], key: "enter" }}
       />
+      <Action
+        title={"Copy Password"}
+        onAction={() => CopyPassword(props)} 
+        shortcut={{modifiers: ['ctrl'], key: "c"}}
+      />
     </ActionPanel>
+    
   );
 }
  

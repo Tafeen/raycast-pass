@@ -22,7 +22,7 @@ function LoadPassFilesList(PATH_TO_STORE: string) {
 
   const loadPasswordsStore = useCallback(() => {
     recursive.default(PATH_TO_STORE, OMMIT_FILES, (err, files: string[]) => {
-      console.error(err);
+      console.error(err);``
       if(err){
         showToast({
           style: Toast.Style.Failure,

@@ -4,6 +4,7 @@ import { useExec } from "@raycast/utils";
 import { userInfo } from "os";
 import { exec } from "child_process";
 import { Preferences } from "./utils";
+import CreatePassForm from "./createPasswordForm";
 
 export interface passwords_path_structure {
   pass_file_path: string;
@@ -22,6 +23,26 @@ let options: any = {
   env: { PATH: preferences.path_var },
   ...process.env,
   ...userInfo(),
+};
+const DeletePassword = async (props: passwords_path_structure) => {
+  const cmd = exec(`pass rm -f '${props.pass_file_name}'`, options);
+  const toast = await showToast({
+    style: Toast.Style.Animated,
+    title: "Decrypting file",
+  });
+
+  cmd.stdout!.on("data", async(data) => {
+    toast.style = Toast.Style.Success;
+    toast.title = data;
+    await showHUD("Password deleted")
+  });
+  
+  cmd.on('close', (code) => {
+    if(code != 0){
+      toast.style = Toast.Style.Failure;
+      toast.title = "Failed to delete password";
+    }
+  });
 };
 
 const CopyPassword = async (props: passwords_path_structure) => {
@@ -104,6 +125,16 @@ export default function GetPasswordDetails(props: passwords_path_structure) {
         title={"Copy Password"}
         onAction={() => CopyPassword(props)} 
         shortcut={{modifiers: ['ctrl'], key: "c"}}
+      />
+      <Action.Push
+        shortcut={{ modifiers: ["ctrl"], key: "a" }}
+        title={"Create Pass Entry"}
+        target={<CreatePassForm />}
+      />
+      <Action
+        shortcut={{ modifiers: ["ctrl"], key: "d" }}
+        onAction={() => DeletePassword(props)}
+        title={"Create Pass Entry"}
       />
     </ActionPanel>
     

@@ -67,7 +67,7 @@ const CopyPassword = async (props: passwords_path_structure) => {
 };
 
 const CopyOTP = async (props: passwords_path_structure) => {
-  const cmd = exec(`pass otp '${props.pass_file_name}'`, options);
+  const cmd = exec(`pass otp '${props.pass_file_name}' | pbcopy && echo "Copied OTP code"`, options);
   const toast = await showToast({
     style: Toast.Style.Animated,
     title: "Decrypting file",
@@ -126,7 +126,7 @@ function PasswordMetadata(props: passwords_path_structure) {
                   />
                   <Action
                     title={"Copy OTP"}
-                    onAction={() => CopyPassword(props)} 
+                    onAction={() => CopyOTP(props)} 
                     shortcut={{modifiers: ['ctrl'], key: "o"}}
                   />
                 </ActionPanel>
@@ -153,6 +153,11 @@ export default function GetPasswordDetails(props: passwords_path_structure) {
         onAction={() => CopyPassword(props)} 
         shortcut={{modifiers: ['ctrl'], key: "c"}}
       />
+      <Action
+        title={"Copy OTP"}
+        onAction={() => CopyOTP(props)} 
+        shortcut={{modifiers: ['ctrl'], key: "o"}}
+      />
       <Action.Push
         shortcut={{ modifiers: ["ctrl"], key: "a" }}
         title={"Create Pass Entry"}
@@ -161,7 +166,7 @@ export default function GetPasswordDetails(props: passwords_path_structure) {
       <Action
         shortcut={{ modifiers: ["ctrl"], key: "d" }}
         onAction={() => DeletePassword(props)}
-        title={"Create Pass Entry"}
+        title={"Delete Pass Entry"}
       />
     </ActionPanel>
     

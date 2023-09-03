@@ -66,6 +66,28 @@ const CopyPassword = async (props: passwords_path_structure) => {
   });
 };
 
+const CopyOTP = async (props: passwords_path_structure) => {
+  const cmd = exec(`pass otp '${props.pass_file_name}'`, options);
+  const toast = await showToast({
+    style: Toast.Style.Animated,
+    title: "Decrypting file",
+  });
+
+  cmd.stdout!.on("data", async(data) => {
+    toast.style = Toast.Style.Success;
+    toast.title = data;
+    await showHUD(data)
+  });
+  
+  cmd.on('close', (code) => {
+    if(code != 0){
+      toast.style = Toast.Style.Failure;
+      toast.title = "Failed to copy OTP";
+    }
+  });
+};
+
+
 function PasswordMetadata(props: passwords_path_structure) {
   const ParseMetadata = (raw_data: string) => {
     return raw_data.split("\n").map((val) => {
@@ -101,6 +123,11 @@ function PasswordMetadata(props: passwords_path_structure) {
                     title={"Copy Password"}
                     onAction={() => CopyPassword(props)} 
                     shortcut={{modifiers: ['ctrl'], key: "c"}}
+                  />
+                  <Action
+                    title={"Copy OTP"}
+                    onAction={() => CopyPassword(props)} 
+                    shortcut={{modifiers: ['ctrl'], key: "o"}}
                   />
                 </ActionPanel>
               }

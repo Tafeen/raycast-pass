@@ -2,7 +2,6 @@ import { List, getPreferenceValues, Toast, showToast } from "@raycast/api";
 import { useState, useEffect, useCallback } from "react";
 import * as recursive from "recursive-readdir";
 
-import BadPasswordPath from "./errors_handling/bad_password_path";
 import GetPasswordDetails, { passwords_path_structure } from "./passwordDetails";
 import { Preferences } from "./utils";
 
@@ -61,7 +60,15 @@ function LoadPassFilesList(PATH_TO_STORE: string) {
     />
   ));
 
-  return !error_loading ? <List>{listItems}</List> : <BadPasswordPath />;
+  if (!error_loading) {
+    return <List>{listItems}</List>;
+  } else {
+    showToast({
+      style: Toast.Style.Failure,
+      title: "'Password store' path is incorrect.",
+      message: "Please update 'Password store' in extension preferences and try again.",
+    });
+  }
 }
 
 export default function Command() {

@@ -7,13 +7,13 @@ Can be installed with ``brew install pass``
 
 - Pass-tail - getting details about pass file [Project](https://github.com/palortoff/pass-extension-tail)
 For this moment required to be build with makefile.
-1. git clone https://github.com/palortoff/pass-extension-tail.git
+1. Clone repo ``git clone https://github.com/palortoff/pass-extension-tail.git``
 2. Change line ``PREFIX ?= /usr`` in makefile to ``PREFIX ?= /opt/homebrew``
 3. Install ``sudo make install``
 
 - Pass-otp - get One-time pasword from pass file [Project](https://github.com/tadfisher/pass-otp)
 For this moment required to be build with makefile.
-1. Clone repo ``git clone https://github.com/palortoff/pass-extension-tail.git``
+1. Clone repo ``git clone https://github.com/tadfisher/pass-otp.git``
 2. Change line ``PREFIX ?= /usr/local`` in makefile to ``PREFIX ?= /opt/homebrew``
 3. Install ``sudo make install``
 

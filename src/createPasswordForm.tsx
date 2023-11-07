@@ -13,18 +13,35 @@ const options: any = {
 interface CreatingPassValues {
   path?: string;
   password?: string;
+  custom_fields?: string;
 }
 
 export default function CreatePassForm() {
   const { pop } = useNavigation();
 
   const AddPASS = async (values: CreatingPassValues) => {
-    let command;
-    if (values.password) {
-      command = `echo ${values.password} | pass insert -e '${values.path}'`;
-    } else {
+    let command = "";
+    
+    // Generate password without custom fields // tested
+    if (!values.password && !values.custom_fields) {
       command = `pass generate '${values.path}'`;
     }
+
+    // Generate password and use custom fields //tested
+    if (!values.password && values.custom_fields){
+      command = `export password=$(openssl rand -base64 12) && pass insert -m '${values.path}' << EOF\n$password\n${values.custom_fields}\nEOF`;
+    }
+
+    // Use only password //tested
+    if (values.password && !values.custom_fields){
+      command = `echo '${values.password}' | pass insert -e '${values.path}'`;
+    }
+
+    // Use password and custom fields
+    if (values.password && values.custom_fields){
+      command = `pass insert -m '${values.path}' << EOF\n${values.password}\n${values.custom_fields}\nEOF`;
+    }
+
 
     const cmd = exec(command, options);
     const toast = await showToast({
@@ -64,6 +81,12 @@ export default function CreatePassForm() {
         id="password"
         placeholder="If empty, password will be generated"
         title="Password"
+      />
+      <Form.TextArea
+        id="custom_fields"
+        title="Custom Fields"
+        placeholder="login:my_login
+my_field:my_field_value"
       />
     </Form>
   );

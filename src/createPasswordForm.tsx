@@ -40,7 +40,6 @@ export default function CreatePassForm() {
 
     cmd.on("close", (code) => {
       if (code != 0) {
-        console.log(code);
         toast.style = Toast.Style.Failure;
         toast.title = "Failed to create Pass Entry";
       }
@@ -60,18 +59,13 @@ export default function CreatePassForm() {
       }
     >
       <Form.Description title="Create Password" text={"Create new password"} />
-      <Form.TextField id="path" title="File path" onBlur={logEvent} onFocus={logEvent} />
+      <Form.TextField id="path" title="File path" />
       <Form.PasswordField
         id="password"
         placeholder="If empty, password will be generated"
         title="Password"
-        onBlur={logEvent}
-        onFocus={logEvent}
       />
     </Form>
   );
 }
 
-function logEvent(event: Form.Event<string[] | string>) {
-  console.log(`Event '${event.type}' has happened for '${event.target.id}'. Current 'value': '${event.target.value}'`);
-}

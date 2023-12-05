@@ -4,7 +4,7 @@ import { exec } from "child_process";
 import { Preferences } from "./utils";
 
 const preferences = getPreferenceValues<Preferences>();
-const options: any = {
+const options = {
   env: { PATH: preferences.path_var },
   ...process.env,
   ...userInfo(),
@@ -48,12 +48,14 @@ export default function CreatePassForm() {
       title: "Adding Pass Entry",
     });
 
-    cmd.stdout!.on("data", async () => {
-      toast.style = Toast.Style.Success;
-      toast.title = `Created Pass Entry ${values.path}`;
-      pop();
-    });
-
+    if (cmd.stdout) {
+      cmd.stdout.on("data", async () => {
+        toast.style = Toast.Style.Success;
+        toast.title = `Created Pass Entry ${values.path}`;
+        pop();
+      });
+    }
+    
     cmd.on("close", (code) => {
       if (code != 0) {
         toast.style = Toast.Style.Failure;
@@ -75,7 +77,7 @@ export default function CreatePassForm() {
       }
     >
       <Form.Description title="Create Password" text={"Create new password"} />
-      <Form.TextField id="path" title="File path" />
+      <Form.TextField id="path" title="File Path" />
       <Form.PasswordField id="password" placeholder="If empty, password will be generated" title="Password" />
       <Form.TextArea
         id="custom_fields"

@@ -1,5 +1,15 @@
-import { ActionPanel, List, Action, showToast, Toast, showHUD, getPreferenceValues, Icon } from "@raycast/api";
-import { useState } from "react";
+import {
+  ActionPanel,
+  List,
+  Action,
+  showToast,
+  Toast,
+  showHUD,
+  getPreferenceValues,
+  Icon,
+  Clipboard,
+} from "@raycast/api";
+import { useEffect, useState } from "react";
 import { useExec } from "@raycast/utils";
 import { userInfo } from "os";
 import { exec } from "child_process";
@@ -24,6 +34,61 @@ let options: any = {
   ...process.env,
   ...userInfo(),
 };
+
+const sanitizeOtpOutput = (output: string) => {
+  const withoutEscape = output.split(String.fromCharCode(27)).join("");
+  const withoutAnsi = withoutEscape.replace(/\[[0-9;]*m/g, "");
+  const firstNonEmptyLine = withoutAnsi
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find((line) => line.length > 0);
+
+  return firstNonEmptyLine ?? "";
+};
+
+const runPassCommand = async (command: string) => {
+  return new Promise<string>((resolve, reject) => {
+    exec(command, options, (err, stdout) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+
+      resolve(stdout.toString());
+    });
+  });
+};
+
+const getOtpTimeToLive = async (passFileName: string) => {
+  try {
+    const uriOutput = await runPassCommand(`pass otp uri '${passFileName}'`);
+    const otpUri = sanitizeOtpOutput(uriOutput);
+    if (!otpUri.startsWith("otpauth://")) {
+      return null;
+    }
+
+    const parsedUri = new URL(otpUri);
+    if (parsedUri.hostname.toLowerCase() !== "totp") {
+      return null;
+    }
+
+    const rawPeriod = Number(parsedUri.searchParams.get("period") ?? "30");
+    const period = Number.isFinite(rawPeriod) && rawPeriod > 0 ? Math.floor(rawPeriod) : 30;
+    const nowInSeconds = Math.floor(Date.now() / 1000);
+    const elapsedInWindow = nowInSeconds % period;
+    const ttl = period - elapsedInWindow;
+
+    return ttl === 0 ? period : ttl;
+  } catch {
+    return null;
+  }
+};
+
+const getOtpCode = async (passFileName: string) => {
+  const otpOutput = await runPassCommand(`pass otp '${passFileName}'`);
+  return sanitizeOtpOutput(otpOutput);
+};
+
 const DeletePassword = async (props: passwords_path_structure) => {
   const cmd = exec(`pass rm -f '${props.pass_file_name}'`, options);
   const toast = await showToast({
@@ -67,48 +132,126 @@ const CopyPassword = async (props: passwords_path_structure) => {
 };
 
 const CopyOTP = async (props: passwords_path_structure) => {
-  const cmd = exec(`pass otp '${props.pass_file_name}' | pbcopy && echo "Copied OTP code"`, options);
   const toast = await showToast({
     style: Toast.Style.Animated,
     title: "Decrypting file",
   });
 
-  cmd.stdout!.on("data", async (data) => {
-    toast.style = Toast.Style.Success;
-    toast.title = data;
-    await showHUD(data);
-  });
-
-  cmd.on("close", (code) => {
-    if (code != 0) {
+  try {
+    const otpCode = await getOtpCode(props.pass_file_name);
+    if (!otpCode) {
       toast.style = Toast.Style.Failure;
-      toast.title = "Failed to copy OTP";
+      toast.title = "Could not parse OTP code";
+      return;
     }
-  });
+
+    await Clipboard.copy(otpCode);
+    toast.style = Toast.Style.Success;
+
+    const ttl = await getOtpTimeToLive(props.pass_file_name);
+    if (!ttl) {
+      toast.title = "Copied OTP to clipboard";
+      return;
+    }
+
+    let secondsLeft = ttl;
+    toast.title = `Copied OTP to clipboard - ${secondsLeft}s left`;
+    const interval = setInterval(() => {
+      secondsLeft--;
+      toast.title = `Copied OTP to clipboard - ${secondsLeft}s left`;
+      if (secondsLeft === 0) {
+        clearInterval(interval);
+        toast.title = "OTP code expired";
+      }
+    }, 1000);
+  } catch {
+    toast.style = Toast.Style.Failure;
+    toast.title = "Failed to copy OTP";
+  }
 };
 
 function PasswordMetadata(props: passwords_path_structure) {
   const ParseMetadata = (raw_data: string) => {
-    return raw_data.split("\n").map((val) => {
-      const indx = val.indexOf(":");
-      const field_name = val.slice(0, indx);
-      const field_value = val.slice(indx).substring(1);
-      return { name: field_name, value: field_value };
-    });
+    return raw_data
+      .split(/\r?\n/)
+      .map((val) => val.trim())
+      .filter((val) => val.length > 0 && !val.startsWith("otpauth://"))
+      .flatMap((val) => {
+        const indx = val.indexOf(":");
+        if (indx <= 0) {
+          return [];
+        }
+
+        const field_name = val.slice(0, indx).trim();
+        const field_value = val.slice(indx + 1).trim();
+        return [{ name: field_name, value: field_value }];
+      });
+  };
+
+  const HasOTP = (raw_data: string) => {
+    return raw_data.split(/\r?\n/).some((line) => line.trim().startsWith("otpauth://"));
   };
 
   const loadPasswordDetails = () => {
     const [markdown, setMarkdown] = useState<password_meta>([]);
+    const [hasOtp, setHasOtp] = useState(false);
+    const [otpCode, setOtpCode] = useState("");
     options = {
       ...options,
       onData: (data: string) => {
         setMarkdown(ParseMetadata(data));
+        setHasOtp(HasOTP(data));
       },
     };
 
     const { isLoading } = useExec("pass", ["tail", `'${props.pass_file_name}'`], options);
+
+    useEffect(() => {
+      if (!hasOtp) {
+        setOtpCode("");
+        return;
+      }
+
+      let active = true;
+      const fetchOtp = async () => {
+        try {
+          const currentOtp = await getOtpCode(props.pass_file_name);
+          if (active) {
+            setOtpCode(currentOtp);
+          }
+        } catch {
+          if (active) {
+            setOtpCode("");
+          }
+        }
+      };
+
+      fetchOtp();
+
+      return () => {
+        active = false;
+      };
+    }, [hasOtp, props.pass_file_name]);
+
     return (
       <List isLoading={isLoading}>
+        {hasOtp ? (
+          <List.Item
+            title="OTP"
+            accessories={[{ text: otpCode || "Loading..." }]}
+            actions={
+              <ActionPanel title="OTP">
+                <Action.CopyToClipboard title="Copy OTP Value" content={otpCode} />
+                <Action
+                  title={"Copy OTP"}
+                  icon={Icon.CopyClipboard}
+                  onAction={() => CopyOTP(props)}
+                  shortcut={{ modifiers: ["ctrl"], key: "o" }}
+                />
+              </ActionPanel>
+            }
+          />
+        ) : null}
         {markdown.map((val, i) => {
           return (
             <List.Item

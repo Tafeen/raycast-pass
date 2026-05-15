@@ -151,11 +151,13 @@ const CopyOTP = async (props: passwords_path_structure) => {
     const ttl = await getOtpTimeToLive(props.pass_file_name);
     if (!ttl) {
       toast.title = "Copied OTP to clipboard";
+      await showHUD("Copied OTP to clipboard");
       return;
     }
 
     let secondsLeft = ttl;
     toast.title = `Copied OTP to clipboard - ${secondsLeft}s left`;
+    await showHUD(`Copied OTP to clipboard - ${secondsLeft}s left`);
     const interval = setInterval(() => {
       secondsLeft--;
       toast.title = `Copied OTP to clipboard - ${secondsLeft}s left`;
